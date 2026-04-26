@@ -10,6 +10,9 @@ import leaveRoutes from "./routes/leave.routes.js";
 import holidayRoutes from "./routes/holiday.routes.js";
 import dashboardRoutes from "./routes/dashboard.routes.js";
 import { notFound, errorHandler } from "./middlewares/error.middleware.js";
+import publicRoutes from "./routes/public.routes.js";
+
+
 
 const app = express();
 
@@ -30,6 +33,7 @@ app.use("/api/attendance", attendanceRoutes);
 app.use("/api/leaves", leaveRoutes);
 app.use("/api/holidays", holidayRoutes);
 app.use("/api/dashboard", dashboardRoutes);
+app.use("/api/public", publicRoutes);
 
 app.use(notFound);
 app.use(errorHandler);

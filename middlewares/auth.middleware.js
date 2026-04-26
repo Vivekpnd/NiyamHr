@@ -1,38 +1,44 @@
 import jwt from "jsonwebtoken";
-import { pool } from "../config/db.js";
-import { fail } from "../utils/apiResponse.js";
 
-export async function protect(req, res, next) {
+export function authMiddleware(req, res, next) {
   try {
-    const header = req.headers.authorization || "";
-    const token = header.startsWith("Bearer ") ? header.split(" ")[1] : null;
+    const header = req.headers.authorization;
 
-    if (!token) return fail(res, "Unauthorized: token missing", 401);
-
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    const { rows } = await pool.query(
-      `SELECT id, organization_id, name, email, role, employee_code, is_active
-       FROM users
-       WHERE id = $1`,
-      [decoded.id]
-    );
-
-    if (!rows.length || !rows[0].is_active) {
-      return fail(res, "Unauthorized: user not found or inactive", 401);
+    if (!header || !header.startsWith("Bearer ")) {
+      return res.status(401).json({
+        success: false,
+        message: "Unauthorized",
+      });
     }
 
-    req.user = rows[0];
+    const token = header.split(" ")[1];
+
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+
+    req.user = {
+      id: decoded.id,
+      organizationId: decoded.organizationId,
+      role: decoded.role,
+    };
+
     next();
-  } catch (err) {
-    return fail(res, "Unauthorized: invalid token", 401);
+  } catch (error) {
+    return res.status(401).json({
+      success: false,
+      message: "Invalid or expired token",
+    });
   }
 }
 
 export function allowRoles(...roles) {
   return (req, res, next) => {
-    if (!req.user || !roles.includes(req.user.role)) {
-      return fail(res, "Forbidden: insufficient permission", 403);
+    if (!roles.includes(req.user.role)) {
+      return res.status(403).json({
+        success: false,
+        message: "Access denied",
+      });
     }
+
     next();
   };
 }
