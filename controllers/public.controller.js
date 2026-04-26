@@ -19,12 +19,7 @@ export async function registerOrganization(req, res) {
       });
     }
 
-    if (
-      !admin?.fullName ||
-      !admin?.email ||
-      !admin?.password ||
-      !admin?.confirmPassword
-    ) {
+    if (!admin?.fullName || !admin?.email || !admin?.password || !admin?.confirmPassword) {
       return res.status(400).json({
         success: false,
         message: "Admin details are required",
@@ -40,22 +35,13 @@ export async function registerOrganization(req, res) {
 
     await client.query("BEGIN");
 
-    let organizationCode = generateOrganizationCode();
+    const organizationCode = generateOrganizationCode();
 
     const orgResult = await client.query(
       `
       INSERT INTO organizations (
-        organization_code,
-        company_name,
-        email,
-        phone,
-        industry,
-        company_size,
-        gst_number,
-        pan_number,
-        address,
-        logo_url,
-        website
+        organization_code, company_name, email, phone, industry,
+        company_size, gst_number, pan_number, address, logo_url, website
       )
       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)
       RETURNING *
@@ -64,19 +50,18 @@ export async function registerOrganization(req, res) {
         organizationCode,
         organization.companyName,
         organization.email,
-        organization.phone,
-        organization.industry,
-        organization.companySize,
-        organization.gstNumber,
-        organization.panNumber,
-        organization.address,
-        organization.logoUrl,
-        organization.website,
+        organization.phone || null,
+        organization.industry || null,
+        organization.companySize || null,
+        organization.gstNumber || null,
+        organization.panNumber || null,
+        organization.address || null,
+        organization.logoUrl || null,
+        organization.website || null,
       ]
     );
 
     const createdOrg = orgResult.rows[0];
-
     const passwordHash = await bcrypt.hash(admin.password, 10);
 
     const adminResult = await client.query(
@@ -89,17 +74,18 @@ export async function registerOrganization(req, res) {
         designation,
         role,
         password_hash,
-        status
+        is_active,
+        must_reset_password
       )
-      VALUES ($1,$2,$3,$4,$5,$6,$7,'active')
-      RETURNING id, full_name, email, role
+      VALUES ($1,$2,$3,$4,$5,$6,$7,true,false)
+      RETURNING id, organization_id, full_name, email, role
       `,
       [
         createdOrg.id,
         admin.fullName,
         admin.email,
-        admin.mobileNumber,
-        admin.designation,
+        admin.mobileNumber || null,
+        admin.designation || null,
         admin.role || "organization_admin",
         passwordHash,
       ]
