@@ -5,20 +5,16 @@ dotenv.config();
 
 const { Pool } = pg;
 
-const isLocalhost =
-  process.env.DB_HOST === "localhost" || process.env.DB_HOST === "127.0.0.1";
+if (!process.env.DATABASE_URL) {
+  console.error("DATABASE_URL is missing");
+  process.exit(1);
+}
 
 export const pool = new Pool({
-  user: process.env.DB_USER,
-  host: process.env.DB_HOST,
-  database: process.env.DB_NAME,
-  password: process.env.DB_PASSWORD,
-  port: Number(process.env.DB_PORT || 5432),
-  ssl: isLocalhost
-    ? false
-    : {
-        rejectUnauthorized: false,
-      },
+  connectionString: process.env.DATABASE_URL,
+  ssl: {
+    rejectUnauthorized: false,
+  },
 });
 
 export async function connectDB() {
@@ -26,8 +22,9 @@ export async function connectDB() {
     const client = await pool.connect();
     console.log("PostgreSQL connected successfully");
     client.release();
-  } catch (error) {
-    console.error("Database connection failed:", error.message);
+  } catch (err) {
+    console.error("Database connection failed:", err.message);
+    console.error(err);
     process.exit(1);
   }
 }
